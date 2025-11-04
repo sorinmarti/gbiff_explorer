@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Results for {{ search.person_name }} - GBIF Explorer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar with Filters -->
+    <div class="col-lg-3 mb-4">
+        <div class="card shadow-sm sticky-top" style="top: 20px;">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-funnel"></i> Filters
+                </h5>
+
+                <form method="GET" action="{{ url_for('results', search_id=search.id) }}" id="filter-form">
+                    <!-- Person Filters (MOST IMPORTANT) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person"></i> Persons
+                        </label>
+
+                        <label for="recorded_by" class="form-label small">Recorded By</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm mb-2"
+                            id="recorded_by"
+                            name="recorded_by"
+                            value="{{ filters.recorded_by }}"
+                            placeholder="Filter by recorder"
+                        >
+
+                        <label for="identified_by" class="form-label small">Identified By</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm"
+                            id="identified_by"
+                            name="identified_by"
+                            value="{{ filters.identified_by }}"
+                            placeholder="Filter by identifier"
+                        >
+                    </div>
+
+                    <hr>
+
+                    <!-- Date Range Filter -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar-range"></i> Date Range
+                        </label>
+
+                        <label for="year_min" class="form-label small">From Year</label>
+                        <input
+                            type="number"
+                            class="form-control form-control-sm mb-2"
+                            id="year_min"
+                            name="year_min"
+                            value="{{ filters.year_min }}"
+                            min="{{ min_year }}"
+                            max="{{ max_year }}"
+                            placeholder="{{ min_year }}"
+                        >
+
+                        <label for="year_max" class="form-label small">To Year</label>
+                        <input
+                            type="number"
+                            class="form-control form-control-sm"
+                            id="year_max"
+                            name="year_max"
+                            value="{{ filters.year_max }}"
+                            min="{{ min_year }}"
+                            max="{{ max_year }}"
+                            placeholder="{{ max_year }}"
+                        >
+                    </div>
+
+                    <hr>
+
+                    <!-- Location Filter -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-geo-alt"></i> Location
+                        </label>
+
+                        <label for="country" class="form-label small">Country</label>
+                        <select class="form-select form-select-sm" id="country" name="country">
+                            <option value="">All countries</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}" {% if filters.country == country %}selected{% endif %}>
+                                {{ country }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <hr>
+
+                    <!-- Taxonomy Filter -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-diagram-3"></i> Taxonomy
+                        </label>
+
+                        <label for="family" class="form-label small">Family</label>
+                        <select class="form-select form-select-sm" id="family" name="family">
+                            <option value="">All families</option>
+                            {% for fam in families %}
+                            <option value="{{ fam }}" {% if filters.family == fam %}selected{% endif %}>
+                                {{ fam }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <hr>
+
+                    <!-- Data Quality Filter -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-check-circle"></i> Data Quality
+                        </label>
+
+                        <label for="has_coordinates" class="form-label small">Has Coordinates</label>
+                        <select class="form-select form-select-sm" id="has_coordinates" name="has_coordinates">
+                            <option value="">Any</option>
+                            <option value="yes" {% if filters.has_coordinates == 'yes' %}selected{% endif %}>Yes</option>
+                            <option value="no" {% if filters.has_coordinates == 'no' %}selected{% endif %}>No</option>
+                        </select>
+                    </div>
+
+                    <hr>
+
+                    <!-- Filter Actions -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-funnel-fill"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('results', search_id=search.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="col-lg-9">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Results for "{{ search.person_name }}"</h2>
+                <p class="text-muted mb-0">
+                    Showing {{ pagination.total }} occurrence(s)
+                    {% if pagination.total != search.result_count %}
+                        (filtered from {{ search.result_count }} total)
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                {% if occurrences %}
+                <a href="{{ url_for('export', search_id=search.id, **request.args) }}" class="btn btn-success">
+                    <i class="bi bi-download"></i> Export CSV
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        {% if occurrences %}
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Scientific Name</th>
+                            <th>Family</th>
+                            <th>Recorded By</th>
+                            <th>Identified By</th>
+                            <th>Institution</th>
+                            <th>Country</th>
+                            <th>Year</th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for occ in occurrences %}
+                        <tr>
+                            <td>
+                                <strong>{{ occ.scientific_name or 'N/A' }}</strong>
+                                {% if occ.genus %}
+                                    <br><small class="text-muted">{{ occ.genus }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ occ.family or 'N/A' }}</td>
+                            <td>
+                                <small>{{ occ.recorded_by or 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <small>{{ occ.identified_by or 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <small>
+                                    {% if occ.institution_code %}
+                                        <strong>{{ occ.institution_code }}</strong>
+                                        {% if occ.collection_code %}
+                                            : {{ occ.collection_code }}
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>{{ occ.country or 'N/A' }}</td>
+                            <td>{{ occ.year or 'N/A' }}</td>
+                            <td>
+                                {% if occ.gbif_url %}
+                                <a href="{{ occ.gbif_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Previous -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('results', search_id=search.id, page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}">
+                        Previous
+                    </a>
+                </li>
+
+                <!-- Page Numbers -->
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('results', search_id=search.id, page=page_num, **request.args) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Next -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('results', search_id=search.id, page=pagination.next_num, **request.args) if pagination.has_next else '#' }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <!-- No Results -->
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            No occurrences found matching the current filters. Try adjusting your filter criteria.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

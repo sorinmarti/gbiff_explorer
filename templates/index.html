@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}GBIF Explorer - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Hero Section -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">GBIF Occurrence Explorer</h1>
+            <p class="lead text-muted">
+                Search for biodiversity occurrence records by person name and explore the results with powerful filtering capabilities.
+            </p>
+        </div>
+
+        <!-- Search Form -->
+        <div class="card shadow-sm mb-5">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-search"></i> Search by Person Name
+                </h5>
+                <form method="POST" action="{{ url_for('search') }}">
+                    <div class="mb-3">
+                        <label for="person_name" class="form-label">
+                            Enter the name of a collector, recorder, or identifier
+                        </label>
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            id="person_name"
+                            name="person_name"
+                            placeholder="e.g., Andrew Garrett, Charles Darwin"
+                            required
+                            autofocus
+                        >
+                        <div class="form-text">
+                            This will search the GBIF database for all occurrence records associated with this person.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-download"></i> Download All Records
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Searches -->
+        {% if recent_searches %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-clock-history"></i> Recent Searches
+                </h5>
+                <div class="list-group list-group-flush">
+                    {% for search in recent_searches %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ search.person_name }}</h6>
+                            <small class="text-muted">
+                                {{ search.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                {% if search.status == 'completed' %}
+                                    - <span class="badge bg-success">{{ search.result_count }} records</span>
+                                {% elif search.status == 'downloading' %}
+                                    - <span class="badge bg-warning">Downloading...</span>
+                                {% elif search.status == 'error' %}
+                                    - <span class="badge bg-danger">Error</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div>
+                            {% if search.status == 'completed' %}
+                            <a href="{{ url_for('results', search_id=search.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('delete_search', search_id=search.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this search?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Section -->
+        <div class="mt-5 text-center text-muted">
+            <p>
+                <small>
+                    This tool uses the <a href="https://www.gbif.org/developer/occurrence" target="_blank">GBIF API</a>
+                    to search and download biodiversity occurrence records.
+                </small>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
